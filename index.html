@@ -409,7 +409,7 @@ async function boot() {
   wl('');
 
   wl(sp('  CENTRAL ARMAMENT & INTELLIGENCE SYSTEM','gb'));
-  wl(sp('  DEPARTMENT OF DEFENSE  //  JSOC TIER-1 CLEARANCE REQUIRED','d'));
+  wl(sp('  DEPARTMENT OF WAR  //  JSOC TIER-1 CLEARANCE REQUIRED','d'));
   const serial = 'CAIS-'+[1,2,3].map(()=>(Math.random()*0xFFFF|0).toString(16).toUpperCase().padStart(4,'0')).join('-');
   wl(sp(`  SYSTEM ID: ${serial}  //  BUILD 7.4.1-CLASSIFIED`,'d'));
   wl('');
