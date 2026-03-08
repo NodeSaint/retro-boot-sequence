@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>CAIS — Central Armament & Intelligence System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap');
 
   :root {
     --green: #33ff33;
@@ -1631,13 +1633,15 @@ async function selfDestruct() {
   await sl(300);
 
   const restart = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     document.removeEventListener('click', restart);
+    document.removeEventListener('touchstart', restart);
     document.removeEventListener('keydown', restart);
     T.innerHTML = '';
     showPowerOn();
   };
   document.addEventListener('click', restart);
+  document.addEventListener('touchstart', restart, { passive: false });
   document.addEventListener('keydown', restart);
 }
 
@@ -1664,21 +1668,24 @@ function showPowerOn() {
   const clearanceSize = isMobile ? '14px' : '12px';
 
   ov.innerHTML = `
+    <style>@keyframes ovblink{0%,100%{opacity:1}50%{opacity:0}}</style>
     <div style="color:#33ff33;font-size:${subtitleSize};margin-bottom:20px;opacity:0.4;letter-spacing:2px;">DEPARTMENT OF WAR</div>
-    <div style="color:#33ff33;font-size:${mainSize};animation:blink 1.2s step-end infinite;letter-spacing:3px;">▶ POWER ON</div>
+    <div style="color:#33ff33;font-size:${mainSize};animation:ovblink 1.2s step-end infinite;letter-spacing:3px;">&#9654; POWER ON</div>
     <div style="color:#1a8c1a;font-size:${taglineSize};margin-top:18px;letter-spacing:1px;">CENTRAL ARMAMENT & INTELLIGENCE SYSTEM</div>
     <div style="color:#0d440d;font-size:${clearanceSize};margin-top:8px;">JSOC TIER-1 CLEARANCE REQUIRED</div>
     <div style="color:#1a8c1a;font-size:${clearanceSize};margin-top:24px;opacity:0.5;">${isMobile ? 'TAP TO BEGIN' : 'CLICK OR PRESS ANY KEY'}</div>
   `;
   document.body.appendChild(ov);
 
-  const handler = () => {
+  const handler = (e) => {
     if (started) return;
     started = true;
+    if (e) e.preventDefault();
     ov.remove();
     boot();
   };
   ov.addEventListener('click', handler);
+  ov.addEventListener('touchstart', handler, { passive: false });
   document.addEventListener('keydown', handler, { once: true });
 }
 
