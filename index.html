@@ -140,6 +140,8 @@
     font-size: inherit;
     caret-color: var(--green);
     width: 55%;
+    position: relative;
+    z-index: 15;
   }
 
   .menu-opt {
@@ -148,6 +150,8 @@
     padding: 1px 0;
     color: var(--cyan);
     white-space: pre;
+    position: relative;
+    z-index: 15;
   }
   .menu-opt:hover {
     background: rgba(0,255,0,0.08);
@@ -272,9 +276,14 @@
     padding: 8px 4px;
     justify-content: center;
     margin-top: 4px;
+    position: relative;
+    z-index: 15;
+    white-space: normal;
   }
 
   .numpad-key {
+    position: relative;
+    z-index: 15;
     background: rgba(0, 20, 0, 0.9);
     border: 1px solid var(--green-dim);
     color: var(--green);
@@ -303,9 +312,14 @@
     flex-wrap: wrap;
     gap: 6px;
     padding: 8px 0;
+    position: relative;
+    z-index: 15;
+    white-space: normal;
   }
 
   .quick-reply-btn {
+    position: relative;
+    z-index: 15;
     background: rgba(0, 20, 0, 0.9);
     border: 1px solid var(--green-dim);
     color: var(--cyan);
