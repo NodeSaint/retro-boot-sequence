@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAIS — Central Armament & Intelligence System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --green: #33ff33;
+    --green-dim: #1a8c1a;
+    --green-glow: #00ff0044;
+    --amber: #ffb000;
+    --amber-dim: #996800;
+    --red: #ff3333;
+    --red-dim: #661414;
+    --cyan: #00cccc;
+    --white: #e0e0e0;
+    --dim: #445544;
+    --bg: #050805;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .crt {
+    position: relative;
+    width: 96vw;
+    height: 94vh;
+    max-width: 1300px;
+    border-radius: 12px;
+    background: radial-gradient(ellipse at center, var(--bg) 0%, #010201 80%);
+    box-shadow:
+      inset 0 0 60px rgba(0, 255, 0, 0.03),
+      0 0 2px rgba(0, 255, 0, 0.1);
+    overflow: hidden;
+  }
+
+  .crt::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 1px,
+      rgba(0,0,0,0.12) 1px, rgba(0,0,0,0.12) 3px
+    );
+    pointer-events: none;
+    z-index: 10;
+    animation: scanFlicker 0.08s infinite alternate;
+  }
+
+  .crt::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.5) 100%);
+    pointer-events: none;
+    z-index: 11;
+  }
+
+  @keyframes scanFlicker {
+    0%   { opacity: 0.96; }
+    100% { opacity: 1.0; }
+  }
+
+  @keyframes glow {
+    0%   { text-shadow: 0 0 3px var(--green-glow); }
+    50%  { text-shadow: 0 0 6px var(--green-glow), 0 0 12px rgba(0,255,0,0.08); }
+    100% { text-shadow: 0 0 3px var(--green-glow); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  #terminal {
+    position: absolute;
+    top: 12px; left: 16px; right: 16px; bottom: 12px;
+    font-family: 'VT323', 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.3;
+    color: var(--green);
+    padding: 10px 14px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    animation: glow 4s ease-in-out infinite;
+    scrollbar-width: none;
+    z-index: 5;
+    tab-size: 4;
+  }
+  #terminal::-webkit-scrollbar { display: none; }
+
+  .d   { color: var(--dim); }
+  .g   { color: var(--green); }
+  .gb  { color: #55ff55; font-weight: bold; }
+  .a   { color: var(--amber); }
+  .ab  { color: #ffc640; font-weight: bold; }
+  .r   { color: var(--red); }
+  .rb  { color: #ff5555; font-weight: bold; }
+  .c   { color: var(--cyan); }
+  .w   { color: var(--white); font-weight: bold; }
+  .blink { animation: blink 1s step-end infinite; }
+
+  .cls-banner {
+    background: #8b0000;
+    color: #fff;
+    font-weight: bold;
+    padding: 0 4px;
+    display: block;
+  }
+
+  .bar-f { color: var(--green); }
+  .bar-e { color: #0a1a0a; }
+  .bar-w { color: var(--amber); }
+
+  .prompt-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--green);
+    font-family: inherit;
+    font-size: inherit;
+    caret-color: var(--green);
+    width: 55%;
+  }
+
+  .menu-opt {
+    display: block;
+    cursor: pointer;
+    padding: 1px 0;
+    color: var(--cyan);
+    white-space: pre;
+  }
+  .menu-opt:hover {
+    background: rgba(0,255,0,0.08);
+    color: #55ff55;
+  }
+  .menu-opt.selected {
+    color: #55ff55;
+    background: rgba(0,255,0,0.12);
+  }
+
+  .explosion {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  @keyframes explode {
+    0%   { transform: scale(0.1); opacity: 1; background: #ff4400; }
+    20%  { transform: scale(1.5); background: #ff8800; }
+    40%  { transform: scale(3); background: #ffcc00; }
+    60%  { transform: scale(5); background: #ffffff; }
+    80%  { transform: scale(8); background: #ff4400; opacity: 0.8; }
+    100% { transform: scale(12); background: #000; opacity: 0; }
+  }
+
+  @keyframes screenShake {
+    0%, 100% { transform: translate(0); }
+    10% { transform: translate(-8px, 5px); }
+    20% { transform: translate(6px, -8px); }
+    30% { transform: translate(-5px, 3px); }
+    40% { transform: translate(8px, -4px); }
+    50% { transform: translate(-3px, 7px); }
+    60% { transform: translate(4px, -6px); }
+    70% { transform: translate(-7px, 2px); }
+    80% { transform: translate(5px, -3px); }
+    90% { transform: translate(-2px, 5px); }
+  }
+
+  .shaking { animation: screenShake 0.15s linear infinite; }
+
+  .static-noise {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 25;
+    opacity: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent, transparent 1px,
+      rgba(255,255,255,0.03) 1px, rgba(255,255,255,0.03) 2px
+    );
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  .power-flash {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #111;
+    z-index: 20;
+    animation: powerUp 0.6s ease-out forwards;
+  }
+
+  @keyframes powerUp {
+    0%   { opacity: 1; background: #000; }
+    5%   { opacity: 1; background: #0a1a0a; }
+    15%  { opacity: 0.5; background: #000; }
+    20%  { opacity: 0.8; background: #050a05; }
+    40%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+
+  #audio-btn {
+    position: fixed;
+    top: 8px;
+    right: 12px;
+    z-index: 100;
+    background: transparent;
+    border: 1px solid var(--dim);
+    color: var(--green-dim);
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    padding: 3px 8px;
+    cursor: pointer;
+    opacity: 0.5;
+  }
+  #audio-btn:hover { opacity: 0.9; }
+</style>
+</head>
+<body>
+
+<div class="crt" id="crt">
+  <div class="power-flash"></div>
+  <div class="static-noise" id="staticNoise"></div>
+  <div id="terminal"></div>
+</div>
+<button id="audio-btn" onclick="audioOn=!audioOn;this.textContent='SND:'+(audioOn?'ON':'OFF')">SND:ON</button>
+
+<script>
+const T = document.getElementById('terminal');
+let audioOn = true, actx = null;
+
+function ac() { if (!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+
+// ── Audio ───────────────────────────────────────────────────
+
+function beep(f=800,d=0.08,v=0.1,type='square') {
+  if(!audioOn)return;
+  try{const c=ac(),o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;g.gain.value=v;g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d);}catch(e){}
+}
+
+function noise(d=0.1,v=0.04) {
+  if(!audioOn)return;
+  try{const c=ac(),buf=c.createBuffer(1,c.sampleRate*d,c.sampleRate),data=buf.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1);const src=c.createBufferSource(),g=c.createGain();src.buffer=buf;g.gain.value=v;g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);src.connect(g);g.connect(c.destination);src.start();}catch(e){}
+}
+
+const snd = {
+  type:   () => beep(1400+Math.random()*800, 0.015, 0.03),
+  data:   () => beep(2500+Math.random()*3000, 0.008, 0.02),
+  click:  () => beep(4000, 0.005, 0.05),
+  ok:     () => { beep(1200,0.05,0.08); setTimeout(()=>beep(1600,0.08,0.08),60); },
+  warn:   () => { beep(400,0.15,0.12); setTimeout(()=>beep(300,0.15,0.12),160); },
+  alarm:  () => { beep(600,0.08,0.15); setTimeout(()=>beep(600,0.08,0.15),120); },
+  boot:   () => { beep(200,0.3,0.08,'sine'); setTimeout(()=>beep(400,0.2,0.1,'sine'),200); setTimeout(()=>beep(800,0.15,0.1,'sine'),400); },
+  online: () => { beep(800,0.1,0.12); setTimeout(()=>beep(1000,0.1,0.12),120); setTimeout(()=>beep(1200,0.15,0.12),240); },
+  armed:  () => { beep(300,0.2,0.15); noise(0.1,0.06); },
+  charge: () => { for(let i=0;i<5;i++) setTimeout(()=>beep(200+i*80,0.06,0.06,'sine'),i*50); },
+  pulse:  () => beep(100,0.4,0.06,'sine'),
+};
+
+// ── Terminal ────────────────────────────────────────────────
+
+const scr = () => T.scrollTop = T.scrollHeight;
+const w = t => { T.insertAdjacentHTML('beforeend', t); scr(); };
+const wl = (t='') => w(t + '\n');
+const sl = ms => new Promise(r => setTimeout(r, ms));
+const sp = (t, c='') => c ? `<span class="${c}">${t}</span>` : t;
+
+async function tw(text, delay=20, cls='') {
+  const el = document.createElement('span');
+  if(cls) el.className = cls;
+  T.appendChild(el);
+  for(let i=0;i<text.length;i++){
+    el.textContent += text[i];
+    if(i%2===0) snd.type();
+    scr();
+    await sl(delay);
+  }
+}
+
+function rHex(n) {
+  let s='';for(let i=0;i<n;i++) s+=(Math.random()*256|0).toString(16).toUpperCase().padStart(2,'0')+' ';
+  return s;
+}
+
+function rAscii(n) {
+  let s='';for(let i=0;i<n;i++) s+=String.fromCharCode(33+(Math.random()*93|0));
+  return s;
+}
+
+async function hexDump(lines=6, delay=20) {
+  for(let i=0;i<lines;i++){
+    const addr=((Math.random()*0xFFFFFFFF)|0).toString(16).toUpperCase().padStart(8,'0');
+    wl(sp(`  ${addr}: ${rHex(12)}|${rAscii(12)}|`,'d'));
+    snd.data(); await sl(delay);
+  }
+}
+
+async function scramble(final, iters=10) {
+  const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*<>{}[]|/\\';
+  const el=document.createElement('span'); el.className='c'; T.appendChild(el);
+  for(let it=0;it<iters;it++){
+    let s='';
+    for(let i=0;i<final.length;i++){
+      if(it>=iters-1) s+=final[i];
+      else if(i<(it/iters)*final.length*0.6) s+=final[i];
+      else s+=chars[Math.random()*chars.length|0];
+    }
+    el.textContent=s; snd.data(); scr(); await sl(50);
+  }
+  el.className='g'; el.textContent=final; w('\n');
+}
+
+function sha() {
+  let h='';for(let i=0;i<16;i++) h+=(Math.random()*256|0).toString(16).padStart(2,'0');
+  return h;
+}
+
+async function pbar(label, dur=1000, special='') {
+  const steps=28, stepD=dur/steps;
+  w(`  ${sp(label.padEnd(32),'c')} [`);
+  const bar=document.createElement('span'); T.appendChild(bar);
+  const pct=document.createElement('span'); pct.className='g'; T.appendChild(pct);
+
+  for(let i=0;i<=steps;i++){
+    const p=Math.round(i*100/steps);
+    let b='';
+    for(let j=0;j<steps;j++) b += j<i ? sp('█','bar-f') : sp('░','bar-e');
+    bar.innerHTML=b;
+    pct.textContent=`] ${String(p).padStart(3)}%`;
+
+    if(special==='nuke' && p===33){
+      snd.pulse();
+      bar.innerHTML=sp('▓'.repeat(steps),'bar-w');
+      pct.innerHTML=sp('] AUTH','a');
+      await sl(500);
+    }
+    if(special==='charge' && p===60){
+      snd.charge();
+      bar.innerHTML=sp('▓'.repeat(steps),'bar-w');
+      pct.innerHTML=sp('] PWR','a');
+      await sl(300);
+    }
+    scr(); await sl(stepD);
+  }
+
+  if(special==='nuke'){
+    snd.armed();
+    w(sp('  ■ ARMED','ab')+'\n');
+  } else if(special==='charge'){
+    snd.ok();
+    w(sp('  ◆ READY','ab')+'\n');
+  } else {
+    snd.ok();
+    w(sp('  ✓','gb')+'\n');
+  }
+}
+
+function hr(ch='─',cls='d') { const n=Math.min(80,Math.floor(window.innerWidth/9.5)); wl(sp(ch.repeat(n),cls)); }
+
+// ═════════════════════════════════════════════════════════════
+//  MAIN BOOT SEQUENCE
+// ═════════════════════════════════════════════════════════════
+
+async function boot() {
+  await sl(500);
+  snd.boot();
+
+  // ── PHASE 1: CLASSIFICATION BANNER ──
+  await sl(300);
+  snd.alarm(); snd.alarm();
+  hr('━','r');
+  wl(sp('  ██ TOP SECRET // SCI // NOFORN // ORCON','cls-banner'));
+  wl(sp('  ██ WARNING: UNAUTHORIZED ACCESS PROSECUTED UNDER 10 U.S.C. §906a / 18 U.S.C. §1030','cls-banner'));
+  hr('━','r');
+  wl('');
+  await sl(400);
+
+  // ── PHASE 2: SYSTEM DESIGNATION ──
+  wl(sp(`   ▄████▄   ▄▄▄       ██▓  ██████`,'gb'));
+  wl(sp(`  ▒██▀ ▀█  ▒████▄    ▓██▒▒██    ▒`,'gb'));
+  wl(sp(`  ▒▓█    ▄ ▒██  ▀█▄  ▒██▒░ ▓██▄`,'gb'));
+  wl(sp(`  ▒▓▓▄ ▄██▒░██▄▄▄▄██ ░██░  ▒   ██▒`,'gb'));
+  wl(sp(`  ▒ ▓███▀ ░ ▓█   ▓██▒░██░▒██████▒▒`,'gb'));
+  wl(sp(`  ░ ░▒ ▒  ░ ▒▒   ▓▒█░░▓  ▒ ▒▓▒ ▒ ░`,'g'));
+  wl(sp(`    ░  ▒     ▒   ▒▒ ░ ▒ ░░ ░▒  ░ ░`,'d'));
+  wl(sp(`  ░          ░   ▒    ▒ ░░  ░  ░`,'d'));
+  wl('');
+
+  wl(sp('  CENTRAL ARMAMENT & INTELLIGENCE SYSTEM','gb'));
+  wl(sp('  DEPARTMENT OF DEFENSE  //  JSOC TIER-1 CLEARANCE REQUIRED','d'));
+  const serial = 'CAIS-'+[1,2,3].map(()=>(Math.random()*0xFFFF|0).toString(16).toUpperCase().padStart(4,'0')).join('-');
+  wl(sp(`  SYSTEM ID: ${serial}  //  BUILD 7.4.1-CLASSIFIED`,'d'));
+  wl('');
+  await sl(500);
+
+  // ── PHASE 3: FIRMWARE POST ──
+  await tw('POWER-ON SELF TEST',18,'a'); w('\n');
+  hr('─','d');
+  w(sp('  PLATFORM:   ','d')); await scramble('LOCKHEED MARTIN MIL-SPEC HARDENED PLATFORM');
+  w(sp('  CPU:        ','d')); await scramble('XEON CLASSIFIED 64-CORE @ 4.2GHz (TEMPEST SHIELDED)');
+  w(sp('  CRYPTO:     ','d')); await scramble('NSA TYPE-1 SUITE B // QUANTUM-RESISTANT LATTICE');
+  w(sp('  TPM:        ','d')); await scramble('TRUSTED PLATFORM MODULE v3.1 — FIPS 140-3 LVL 4');
+  w(sp('  ENCLAVE:    ','d')); await scramble('SGX SECURE ENCLAVE ACTIVE — 512MB ISOLATED');
+  wl('');
+
+  // ── PHASE 4: SECURE BOOT CHAIN ──
+  await tw('VERIFYING SECURE BOOT CHAIN',18,'a'); w('\n');
+
+  const stages = ['STAGE 0  HARDWARE ROOT OF TRUST','STAGE 1  BOOTLOADER','STAGE 2  KERNEL','STAGE 3  SECOPS LAYER','STAGE 4  CAIS CORE'];
+  for(const s of stages){
+    w(`  ${sp('■','gb')} ${sp(s.padEnd(35),'g')} `);
+    const hashEl = document.createElement('span'); hashEl.className='d'; T.appendChild(hashEl);
+    for(let k=0;k<5;k++){
+      hashEl.textContent=sha(); snd.data(); scr(); await sl(60);
+    }
+    hashEl.textContent=sha();
+    w(sp('  VALID','gb')+'\n');
+    snd.click();
+    await sl(80);
+  }
+  wl('');
+  wl(sp('  SECURE BOOT CHAIN: INTACT ■■■■■','gb'));
+  wl('');
+  await sl(250);
+
+  // ── PHASE 5: MEMORY INIT ──
+  await tw('INITIALIZING PROTECTED MEMORY',18,'a'); w('\n');
+  const banks=['BANK-0 128GB','BANK-1 128GB','BANK-2 128GB','BANK-3 128GB'];
+  w(sp('  ECC RAM: ','d'));
+  for(const b of banks){
+    w(sp(b+'...','d'));
+    await sl(120);
+    w(sp('OK','gb')+'  ');
+    snd.click();
+  }
+  w('\n');
+  wl(sp('  TOTAL: 512GB ECC DDR5 — TEMPEST CERTIFIED','gb'));
+  wl(sp('  LOADING ENCRYPTED MEMORY IMAGE...','d'));
+  await hexDump(5,20);
+  wl('');
+
+  // ── PHASE 6: CORE SYSTEMS ──
+  hr('═','g');
+  wl(sp(' ■ CORE SYSTEMS INITIALIZATION','w'));
+  hr('═','g');
+  wl('');
+
+  await pbar('HARDENED KERNEL (SELINUX)', 700);
+  await pbar('CRYPTOGRAPHIC KEY STORE (TYPE-1)', 500);
+  await pbar('MULTI-SPECTRAL RADAR FUSION', 800);
+  await pbar('SATELLITE ARRAY (MILSTAR/AEHF)', 900);
+  await pbar('TACTICAL DATA LINK (LINK-16)', 600);
+  await pbar('FIRE CONTROL COMPUTER', 700);
+  await pbar('ELECTRONIC WARFARE SUITE', 900);
+  await pbar('HYPERSONIC GUIDANCE SYSTEM', 1000);
+  await pbar('ACOUSTIC DEEP-SEA ARRAY (SOSUS)', 500);
+  await pbar('DIRECTED ENERGY WEAPONS CTRL', 1100, 'charge');
+  await pbar('NUCLEAR COMMAND AUTH MODULE', 1800, 'nuke');
+  wl('');
+  await sl(300);
+
+  // ── PHASE 7: ENCRYPTED MESH ──
+  hr('═','g');
+  wl(sp(' ■ ESTABLISHING ENCRYPTED MESH','w'));
+  hr('═','g');
+  wl('');
+
+  const meshHeader = `  ${sp('CALLSIGN'.padEnd(18),'d')}${sp('NETWORK'.padEnd(20),'d')}${sp('CH'.padEnd(10),'d')}${sp('ENCRYPTION'.padEnd(16),'d')}${sp('STATUS','d')}`;
+  wl(meshHeader);
+  hr('─','d');
+
+  const mesh = [
+    ['OLYMPUS',        'STRATCOM',           'CH-01A', 'AES-256-GCM'],
+    ['LOOKING GLASS',  'AIRBORNE CMD',       'CH-03F', 'TYPE-1/SCI'],
+    ['KEYHOLE-19',     'NRO SIGINT SAT',     'CH-07X', 'QKD-ENABLED'],
+    ['ECHELON-VII',    'NSA/CSS INTERCEPT',  'CH-12R', 'QUANTUM-OTP'],
+    ['PRISM-NODE',     'CIA SOG',            'CH-14D', 'AES-256-GCM'],
+    ['DEEP BLUE',      'SUBSURFACE CMD',     'CH-22S', 'TYPE-1/SCI'],
+    ['IRON DOME+',     'MISSILE DEFENSE',    'CH-31M', 'AES-256-GCM'],
+    ['SHADOW NET',     'JSOC MESH',          'CH-99X', 'QKD-ENABLED'],
+  ];
+
+  for(const [cs,net,ch,enc] of mesh){
+    w(`  ${sp(cs.padEnd(18),'c')}${sp(net.padEnd(20),'c')}${sp(ch.padEnd(10),'c')}${sp(enc.padEnd(16),'c')}`);
+    await sl(100);
+    beep(800+Math.random()*400,0.03,0.05);
+    w(sp('■ SYNC','gb')+'\n');
+  }
+  wl('');
+  wl(sp('  MESH INTEGRITY: 100%  //  LATENCY: <2ms  //  QUANTUM-HARDENED','gb'));
+  wl('');
+  await sl(250);
+
+  // ── PHASE 8: WEAPONS PLATFORMS ──
+  hr('═','g');
+  wl(sp(' ■ WEAPONS PLATFORM STATUS','w'));
+  hr('═','g');
+  wl('');
+
+  wl(`  ${sp('DESIGNATION'.padEnd(16),'d')}${sp('PLATFORM'.padEnd(34),'d')}${sp('TYPE'.padEnd(14),'d')}${sp('STATUS','d')}`);
+  hr('─','d');
+
+  const weapons = [
+    ['MMIII-07A',     'LGM-30G MINUTEMAN III',          'ICBM',         'STANDBY'],
+    ['MMIII-12C',     'LGM-30G MINUTEMAN III',          'ICBM',         'STANDBY'],
+    ['SENTINEL-01',   'LGM-35A SENTINEL',               'ICBM',         'ARMED'],
+    ['TRIDENT-D5',    'UGM-133A TRIDENT II',            'SLBM',         'PATROL'],
+    ['LRSO-ALPHA',    'AGM-181A LONG RANGE STANDOFF',   'CRUISE',       'LOADED'],
+    ['ARRW-09',       'AGM-183A HYPERSONIC GLIDE',      'HYPERSONIC',   'ARMED'],
+    ['DARK EAGLE-03', 'LRHW DARK EAGLE',                'HYPERSONIC',   'ARMED'],
+    ['HACKSAW-7',     'CLASSIFIED ORBITAL PLATFORM',    'KINETIC',      'STANDBY'],
+    ['AEGIS-BMD',     'SM-3 BLOCK IIA INTERCEPTOR',     'ABM',          'ACTIVE'],
+    ['THAAD-BRAVO',   'TERMINAL HIGH ALT DEFENSE',      'ABM',          'ACTIVE'],
+    ['GBI-ALPHA',     'GROUND BASED INTERCEPTOR',       'ABM',          'ACTIVE'],
+    ['DEW-LANCE',     'HIGH ENERGY LASER SYSTEM',       'DIRECTED-E',   'CHARGING'],
+  ];
+
+  for(const [des,plat,type,stat] of weapons){
+    w(`  ${sp(des.padEnd(16),'c')}${sp(plat.padEnd(34),'c')}${sp(type.padEnd(14),'c')}`);
+    await sl(60);
+
+    if(stat==='ARMED'){
+      snd.armed();
+      w(sp('▲ '+stat,'rb')+'\n');
+    } else if(stat==='CHARGING'){
+      w(sp('◆ '+stat,'ab')+'\n');
+    } else if(stat==='ACTIVE'){
+      w(sp('● '+stat,'gb')+'\n');
+    } else {
+      w(sp('○ '+stat,'d')+'\n');
+    }
+  }
+  wl('');
+  wl(sp('  12 PLATFORMS ONLINE  //  3 ARMED  //  3 INTERCEPTORS ACTIVE  //  1 CHARGING','ab'));
+  wl('');
+  await sl(300);
+
+  // ── PHASE 9: SURVEILLANCE & INTEL ──
+  hr('═','g');
+  wl(sp(' ■ SURVEILLANCE & INTELLIGENCE GRID','w'));
+  hr('═','g');
+  wl('');
+
+  wl(`  ${sp('FEED'.padEnd(28),'d')}${sp('STATUS'.padEnd(10),'d')}${sp('SIGNAL'.padEnd(10),'d')}${sp('METRICS','d')}`);
+  hr('─','d');
+
+  const feeds = [
+    ['SIGINT (NSA/CSS)',           'ACTIVE', '██████', '1,247 INTERCEPTS/HR'],
+    ['GEOINT (NGA KEYHOLE)',      'ACTIVE', '█████░', '14 IMAGING SATELLITES'],
+    ['MASINT (DIA SENSORS)',      'ACTIVE', '██████', 'SEISMIC+ACOUSTIC+EM'],
+    ['HUMINT (CIA/SOG)',          'ACTIVE', '████░░', '██ CLASSIFIED ██'],
+    ['OSINT AGGREGATOR',          'ACTIVE', '██████', '2.4M SOURCES/MIN'],
+    ['DEEP-SEA HYDROPHONE NET',   'ACTIVE', '█████░', 'SOSUS+IUSS GLOBAL'],
+    ['OVER-HORIZON RADAR',        'ACTIVE', '██████', '3,200NM RANGE'],
+    ['SPACE-BASED INFRARED',      'ACTIVE', '██████', 'SBIRS CONSTELLATION'],
+    ['CYBER THREAT FEEDS',        'ACTIVE', '█████░', '47K INDICATORS/HR'],
+    ['EW SPECTRUM MONITOR',       'ACTIVE', '██████', '0.1Hz — 100GHz SWEEP'],
+  ];
+
+  for(const [feed,stat,sig,met] of feeds){
+    w(`  ${sp(feed.padEnd(28),'c')}${sp(stat.padEnd(10),'gb')}${sp(sig.padEnd(10),'g')}${sp(met,'d')}\n`);
+    snd.data(); await sl(50);
+  }
+  wl('');
+  await sl(250);
+
+  // ── PHASE 10: THREAT BOARD ──
+  snd.warn();
+  hr('═','r');
+  wl(sp(' ■ GLOBAL THREAT ASSESSMENT','rb'));
+  hr('═','r');
+  wl('');
+
+  const threat = [
+    '  ┌───────────────────────────────────────────────────────────────────┐',
+    '  │  DEFCON STATUS:         ██████ 3 — INCREASE IN FORCE READINESS  │',
+    '  │  GLOBAL THREAT LEVEL:   ████████ ELEVATED                       │',
+    '  │  ACTIVE RADAR TRACKS:   1,247                                   │',
+    '  │  HOSTILE DESIGNATIONS:  3  (SEE CLASSIFIED ANNEX)               │',
+    '  │  UNKNOWN TRACKS:        17                                      │',
+    '  │  AIRBORNE ASSETS:       42 SORTIES                              │',
+    '  │  SUBMARINE PATROLS:     6 ACTIVE (POSITIONS WITHHELD)           │',
+    '  │  FORCE POSTURE:         ENHANCED READINESS                      │',
+    '  ├───────────────────────────────────────────────────────────────────┤',
+    '  │  MISSILE WARNING:       ░░░░░░░░░░░░░░░░ NO ACTIVE THREATS      │',
+    '  │  CYBER THREATCON:       ████░░░░░░░░░░░░ BRAVO                  │',
+    '  │  CBRN STATUS:           ░░░░░░░░░░░░░░░░ NOMINAL                │',
+    '  └───────────────────────────────────────────────────────────────────┘',
+  ];
+
+  for(const line of threat){
+    wl(sp(line,'g'));
+    await sl(40);
+  }
+  wl('');
+  await sl(600);
+
+  // ── PHASE 11: SYSTEM ONLINE ──
+  hr('═','g');
+  wl('');
+  snd.online();
+  await sl(200);
+
+  const onlineArt = [
+    '   ▄████▄   ▄▄▄       ██▓  ██████      ▒█████   ███▄    █  ██▓     ██▓ ███▄    █ ▓█████',
+    '  ▒██▀ ▀█  ▒████▄    ▓██▒▒██    ▒     ▒██▒  ██▒ ██ ▀█   █ ▓██▒    ▓██▒ ██ ▀█   █ ▓█   ▀',
+    '  ▒▓█    ▄ ▒██  ▀█▄  ▒██▒░ ▓██▄       ▒██░  ██▒▓██  ▀█ ██▒▒██░    ▒██▒▓██  ▀█ ██▒▒███',
+    '  ▒▓▓▄ ▄██▒░██▄▄▄▄██ ░██░  ▒   ██▒    ▒██   ██░▓██▒  ▐▌██▒▒██░    ░██░▓██▒  ▐▌██▒▒▓█  ▄',
+    '  ▒ ▓███▀ ░ ▓█   ▓██▒░██░▒██████▒▒    ░ ████▓▒░▒██░   ▓██░░██████▒░██░▒██░   ▓██░░▒████▒',
+    '  ░ ░▒ ▒  ░ ▒▒   ▓▒█░░▓  ▒ ▒▓▒ ▒ ░    ░ ▒░▒░▒░░ ▒░   ▒ ▒ ░ ▒░▓  ░░▓  ░ ▒░   ▒ ▒ ░░ ▒░ ░',
+    '    ░  ▒     ▒   ▒▒ ░ ▒ ░░ ░▒  ░ ░      ░ ▒ ▒░  ░   ░ ░ ░ ░ ▒  ░ ▒ ░  ░   ░ ░  ░ ░  ░',
+    '  ░          ░   ▒    ▒ ░░  ░  ░       ░ ░ ░ ▒ ░   ░     ░ ░    ▒ ░░   ░      ░',
+  ];
+
+  for(const line of onlineArt){
+    wl(sp(line,'gb'));
+    await sl(30);
+  }
+  wl('');
+  wl(sp('  ALL SYSTEMS NOMINAL — AWAITING COMMAND AUTHORITY','gb'));
+  wl('');
+
+  hr('━','r');
+  wl(sp('  ██ TOP SECRET // SCI // NOFORN // ORCON','cls-banner'));
+  hr('━','r');
+  wl('');
+  await sl(400);
+
+  // ── INTERACTIVE COMMAND CENTER ──
+  await commandCenter();
+}
+
+// ═════════════════════════════════════════════════════════════
+//  INTERACTIVE COMMAND CENTER
+// ═════════════════════════════════════════════════════════════
+
+function makeSelect(options, prompt='SELECT') {
+  return new Promise(resolve => {
+    wl('');
+    const border = '─'.repeat(Math.max(50, prompt.length + 4));
+    wl(sp(`  ┌─ ${prompt} ${'─'.repeat(Math.max(0, 48 - prompt.length))}┐`,'g'));
+
+    const optEls = [];
+    options.forEach((opt, i) => {
+      const el = document.createElement('span');
+      el.className = 'menu-opt';
+      el.textContent = `  │  [${i+1}] ${opt.padEnd(42)}│`;
+      el.dataset.idx = i;
+      T.appendChild(el);
+      w('\n');
+      optEls.push(el);
+    });
+
+    wl(sp(`  └${'─'.repeat(50)}┘`,'g'));
+    wl('');
+    w(sp(`  SELECT [1-${options.length}] > `,'gb'));
+
+    const indicator = document.createElement('span');
+    indicator.className = 'gb blink';
+    indicator.textContent = '█';
+    T.appendChild(indicator);
+    scr();
+
+    let resolved = false;
+
+    function pick(idx) {
+      if (resolved || idx < 0 || idx >= options.length) return;
+      resolved = true;
+
+      // Remove keyboard listener immediately
+      document.removeEventListener('keydown', keyHandler);
+
+      // Highlight selection
+      optEls.forEach(el => {
+        el.classList.remove('selected');
+        el.style.pointerEvents = 'none';
+      });
+      optEls[idx].classList.add('selected');
+      snd.click();
+
+      indicator.remove();
+      w(sp(options[idx],'gb') + '\n');
+      scr();
+
+      // Small delay so user sees the highlight, then resolve
+      setTimeout(() => resolve(idx), 200);
+    }
+
+    // Click handlers on each option
+    optEls.forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        pick(parseInt(el.dataset.idx));
+      });
+    });
+
+    // Keyboard handlers (1-9 or numpad)
+    function keyHandler(e) {
+      const num = parseInt(e.key);
+      if (!isNaN(num) && num >= 1 && num <= options.length) {
+        e.preventDefault();
+        e.stopPropagation();
+        pick(num - 1);
+      }
+    }
+    document.addEventListener('keydown', keyHandler);
+  });
+}
+
+async function fakeLoading(msg, dur=2000) {
+  const steps = 20;
+  w(`  ${sp(msg,'c')}  [`);
+  const bar = document.createElement('span'); T.appendChild(bar);
+  const pct = document.createElement('span'); pct.className='g'; T.appendChild(pct);
+  for(let i=0;i<=steps;i++){
+    const p = Math.round(i*100/steps);
+    let b='';
+    for(let j=0;j<steps;j++) b+=j<i?sp('█','bar-f'):sp('░','bar-e');
+    bar.innerHTML=b; pct.textContent=`] ${String(p).padStart(3)}%`;
+    snd.data(); scr();
+    await sl(dur/steps);
+  }
+  w('\n');
+}
+
+async function commandCenter() {
+  wl('');
+  hr('═','g');
+  wl(sp(' ■ COMMAND CENTER — SELECT OPERATION','w'));
+  hr('═','g');
+
+  const mainChoice = await makeSelect([
+    'LAUNCH OPERATION',
+    'POSTPONE OPERATION',
+    'CALL FOR BACKUP',
+    'CALL PRESIDENT (DIRECT LINE)',
+    'MANUAL COMMAND INPUT',
+  ], 'OPERATION SELECT');
+
+  if (mainChoice === 0) await launchOperation();
+  else if (mainChoice === 1) await postponeOperation();
+  else if (mainChoice === 2) await callBackup();
+  else if (mainChoice === 3) await callPresident();
+  else if (mainChoice === 4) await manualInput();
+
+  await endMenu();
+}
+
+// ── LAUNCH OPERATION ──
+
+async function launchOperation() {
+  snd.alarm();
+  wl('');
+  await tw('■ LAUNCH OPERATIONS MODULE ACTIVATED', 22, 'rb'); w('\n');
+  await tw('TARGETING COMPUTER ONLINE — SELECT STRIKE PACKAGE:', 18, 'a'); w('\n');
+
+  const strike = await makeSelect([
+    'ALPHA — SURGICAL STRIKE (TOMAHAWK CRUISE)',
+    'BRAVO — HYPERSONIC FIRST STRIKE (DARK EAGLE)',
+    'CHARLIE — ORBITAL KINETIC BOMBARDMENT (HACKSAW)',
+    'DELTA — FULL NUCLEAR RESPONSE (TRIDENT + SENTINEL)',
+    'ABORT — CANCEL LAUNCH SEQUENCE',
+  ], 'STRIKE PACKAGE');
+
+  wl('');
+  if (strike === 4) {
+    snd.ok();
+    await tw('LAUNCH SEQUENCE ABORTED — STANDING DOWN', 20, 'gb'); w('\n');
+    return;
+  }
+
+  const packages = [
+    { name: 'ALPHA', type: 'TOMAHAWK BLOCK V', count: 24, warhead: 'CONVENTIONAL 1,000LB' },
+    { name: 'BRAVO', type: 'LRHW DARK EAGLE', count: 6, warhead: 'HYPERSONIC BOOST-GLIDE' },
+    { name: 'CHARLIE', type: 'HACKSAW ORBITAL', count: 3, warhead: 'TUNGSTEN KINETIC ROD' },
+    { name: 'DELTA', type: 'TRIDENT II D5 + SENTINEL', count: 48, warhead: 'W88 THERMONUCLEAR' },
+  ];
+  const pkg = packages[strike];
+
+  await tw(`STRIKE PACKAGE ${pkg.name} SELECTED`, 20, 'rb'); w('\n');
+  wl(sp(`  PLATFORM:  ${pkg.type}`,'c'));
+  wl(sp(`  ORDNANCE:  ${pkg.count} UNITS`,'c'));
+  wl(sp(`  WARHEAD:   ${pkg.warhead}`,'c'));
+  wl('');
+
+  await fakeLoading('CALCULATING TRAJECTORY', 1500);
+  await fakeLoading('PROGRAMMING GUIDANCE', 1200);
+  await fakeLoading('ARMING WARHEADS', 1800);
+  wl('');
+
+  snd.alarm();
+  await tw('■ TWO-PERSON INTEGRITY PROTOCOL REQUIRED', 22, 'rb'); w('\n');
+  await tw('AUTHENTICATING LAUNCH OFFICER #1...', 18, 'a'); w('\n');
+  await fakeLoading('BIOMETRIC SCAN', 1000);
+  wl(sp('  OFFICER #1: AUTHENTICATED','gb'));
+  wl('');
+  await sl(400);
+
+  await tw('AUTHENTICATING LAUNCH OFFICER #2...', 18, 'a'); w('\n');
+  await fakeLoading('BIOMETRIC SCAN', 1500);
+  snd.warn();
+  wl(sp('  OFFICER #2: ■ AUTHENTICATION FAILED','rb'));
+  wl(sp('  SECOND KEY NOT PRESENT IN TERMINAL PROXIMITY','r'));
+  wl('');
+  await sl(300);
+  await tw('LAUNCH DENIED — DUAL-KEY REQUIREMENT NOT MET', 20, 'a'); w('\n');
+  await tw('INCIDENT LOGGED — REF: CAIS-LAUNCH-' + (Math.random()*9999|0).toString().padStart(4,'0'), 18, 'd'); w('\n');
+}
+
+// ── POSTPONE OPERATION ──
+
+async function postponeOperation() {
+  wl('');
+  await tw('OPERATION POSTPONEMENT MODULE', 22, 'a'); w('\n');
+  wl('');
+
+  const reason = await makeSelect([
+    'WEATHER — ADVERSE CONDITIONS AT TARGET ZONE',
+    'INTEL — AWAITING UPDATED RECONNAISSANCE',
+    'POLITICAL — DIPLOMATIC CHANNELS STILL OPEN',
+    'ASSET REPOSITION — FORCES NOT IN PLACE',
+    'STAND DOWN — THREAT LEVEL REDUCED',
+  ], 'POSTPONEMENT REASON');
+
+  const reasons = ['WEATHER/ADVERSE','INTEL/RECON','POLITICAL/DIPLOMATIC','ASSET/REPOSITION','STAND-DOWN'];
+  wl('');
+  await fakeLoading('UPDATING OPERATION STATUS', 1200);
+  wl('');
+  snd.ok();
+  wl(sp(`  OPERATION STATUS: POSTPONED`,'ab'));
+  wl(sp(`  REASON CODE: ${reasons[reason]}`,'c'));
+  wl(sp(`  ALL ASSETS HOLDING CURRENT POSITIONS`,'d'));
+  wl(sp(`  NEXT REVIEW: 0600Z — STRATCOM J3 BRIEFING`,'d'));
+}
+
+// ── CALL FOR BACKUP ──
+
+async function callBackup() {
+  wl('');
+  await tw('■ EMERGENCY SUPPORT REQUEST', 22, 'ab'); w('\n');
+  wl('');
+
+  const backup = await makeSelect([
+    'REQUEST QRF (QUICK REACTION FORCE)',
+    'CALL IN AIRSTRIKE (CAS)',
+    'REQUEST MEDEVAC (DUSTOFF)',
+    'DEPLOY DRONE SWARM (REAPER WING)',
+    'REQUEST NAVAL GUNFIRE SUPPORT',
+    'ACTIVATE CYBER WARFARE UNIT',
+  ], 'SUPPORT TYPE');
+
+  const callsigns = ['VIPER 6','HAWKEYE 3-1','DUSTOFF 7','REAPER WING','USS ZUMWALT','CYBER CMD'];
+  const freqs = ['327.45','251.80','123.025','datalink','naval-tac-3','SIPR-NET'];
+
+  wl('');
+  await fakeLoading('ESTABLISHING COMMS', 1500);
+  snd.alarm();
+  wl('');
+  await tw(`HAILING ${callsigns[backup]} ON ${freqs[backup]}...`, 20, 'c'); w('\n');
+  await sl(800);
+  await tw('SIGNAL ACQUIRED — TRANSMITTING REQUEST...', 18, 'gb'); w('\n');
+  await fakeLoading('ENCRYPTING TRANSMISSION', 800);
+  await sl(500);
+  snd.ok();
+  wl('');
+
+  const responses = [
+    ['QRF VIPER 6 COPIES — OSCAR MIKE IN 12 MIKES','CHALK 2 INBOUND — 8 OPERATORS + K9 UNIT','LZ COORDINATES LOCKED — AUTHENTICATION: TANGO-FOXTROT-7'],
+    ['HAWKEYE 3-1 COPIES — WINCHESTER IN 8 MIKES','ORDNANCE: 2x GBU-39 SDB + 1x AGM-114R','TARGET COORDINATES RECEIVED — CONFIRM DANGER CLOSE'],
+    ['DUSTOFF 7 COPIES — WHEELS UP IN 4 MIKES','UH-60M + FLIGHT SURGEON ON BOARD','LZ SECURITY REQUIRED — POP SMOKE ON ARRIVAL'],
+    ['REAPER WING COPIES — 4x MQ-9B ON STATION','SENSOR PACKAGE: EO/IR + SAR + SIGINT','LOITER TIME: 18 HOURS — WEAPONS HOT AUTHORIZED'],
+    ['USS ZUMWALT COPIES — READY TO FIRE','155MM AGS — 24 ROUNDS STANDING BY','FIRE MISSION COORDINATES LOCKED — SPLASH IN 47 SEC'],
+    ['CYBER CMD COPIES — PAYLOAD STAGED','TARGET NETWORK MAPPED — 47 NODES IDENTIFIED','ZERO-DAY EXPLOIT LOADED — AWAITING EXECUTE ORDER'],
+  ];
+
+  for (const line of responses[backup]) {
+    wl(sp(`  >> ${line}`, 'gb'));
+    await sl(200);
+  }
+  wl('');
+  wl(sp('  SUPPORT REQUEST CONFIRMED — COMMS CHANNEL OPEN','gb'));
+}
+
+// ── CALL PRESIDENT ──
+
+async function callPresident() {
+  wl('');
+  snd.alarm();
+  await tw('■ INITIATING PRESIDENTIAL DIRECT LINE', 22, 'rb'); w('\n');
+  await tw('YANKEE WHITE CLEARANCE VERIFIED', 18, 'a'); w('\n');
+  wl('');
+
+  await fakeLoading('ROUTING THROUGH DISN', 1000);
+  await fakeLoading('ENGAGING SECURE VOICE (STE)', 800);
+  await fakeLoading('AUTHENTICATING GOLD CODE', 1500);
+  wl('');
+
+  await tw('CONNECTING TO NATIONAL COMMAND AUTHORITY...', 20, 'c'); w('\n');
+  await sl(600);
+  wl(sp('  ╔══════════════════════════════════════════════╗','a'));
+  wl(sp('  ║  DIRECT LINE — PRESIDENT / NATIONAL COMMAND ║','a'));
+  wl(sp('  ║  CLASSIFICATION: TOP SECRET // UMBRA        ║','a'));
+  wl(sp('  ╚══════════════════════════════════════════════╝','a'));
+  wl('');
+  await sl(500);
+
+  snd.warn();
+  await tw('>> SIGNAL INTERFERENCE DETECTED ON PRIMARY CHANNEL', 20, 'r'); w('\n');
+  await tw('>> REROUTING THROUGH MILSTAR BACKUP...', 18, 'a'); w('\n');
+  await fakeLoading('SATELLITE HANDSHAKE', 1200);
+  await sl(400);
+
+  snd.warn();
+  wl('');
+  await tw('■ CONNECTION FAILED — PRESIDENTIAL BUNKER COMMS OFFLINE', 20, 'rb'); w('\n');
+  await tw('FAILOVER PROTOCOL ACTIVE — ROUTING TO SECRETARY OF DEFENSE', 18, 'a'); w('\n');
+  wl('');
+
+  const presChoice = await makeSelect([
+    'RETRY PRESIDENTIAL LINE',
+    'CONNECT TO SECDEF',
+    'ACTIVATE CONTINUITY OF GOVERNMENT',
+    'ISSUE EMERGENCY ACTION MESSAGE (EAM)',
+  ], 'FALLBACK ACTION');
+
+  wl('');
+  if (presChoice === 0) {
+    await fakeLoading('RETRYING SECURE CHANNEL', 1500);
+    snd.warn();
+    wl(sp('  ■ CONNECTION TIMED OUT — RETRY LIMIT REACHED','rb'));
+    wl(sp('  RECOMMEND: ACTIVATE CONTINUITY PROTOCOLS','a'));
+  } else if (presChoice === 1) {
+    await fakeLoading('CONNECTING TO PENTAGON', 1200);
+    snd.ok();
+    wl(sp('  >> SECDEF ONLINE — VOICE AUTHENTICATED','gb'));
+    wl(sp('  >> BRIEFING: DEFCON 3 POSTURE // 3 HOSTILE TRACKS','c'));
+    wl(sp('  >> AWAITING NATIONAL COMMAND AUTHORITY DECISION','d'));
+  } else if (presChoice === 2) {
+    snd.alarm();
+    await tw('■ COG PROTOCOL ACTIVATED — EXECUTIVE ORDER 12656', 20, 'rb'); w('\n');
+    await fakeLoading('ALERTING MOUNT WEATHER', 1000);
+    await fakeLoading('ALERTING RAVEN ROCK', 800);
+    await fakeLoading('DISPERSING CONTINUITY TEAMS', 1200);
+    wl(sp('  ALL CONTINUITY SITES: ACTIVATED','ab'));
+    wl(sp('  SUCCESSOR CHAIN: INTACT — 18 DESIGNATED SURVIVORS','d'));
+  } else {
+    snd.alarm(); snd.alarm();
+    await tw('■ EAM BROADCAST INITIATED', 22, 'rb'); w('\n');
+    wl(sp('  SKYKING, SKYKING, DO NOT ANSWER','rb'));
+    wl(sp('  AUTHENTICATION: FOXTROT-LIMA-7-7-ALPHA-TANGO','a'));
+    await fakeLoading('TRANSMITTING ON ALL FREQUENCIES', 2000);
+    wl(sp('  EAM TRANSMITTED — ALL UNITS ACKNOWLEDGE','ab'));
+  }
+}
+
+// ── MANUAL INPUT ──
+
+async function manualInput() {
+  wl('');
+  await tw('MANUAL COMMAND INTERFACE — ENTER COMMAND:', 18, 'a'); w('\n');
+  w(sp('  CAIS://> ','gb'));
+
+  return new Promise(resolve => {
+    const input = document.createElement('input');
+    input.className = 'prompt-input';
+    input.setAttribute('spellcheck', false);
+    input.setAttribute('autocomplete', 'off');
+    T.appendChild(input);
+    input.focus();
+    scr();
+
+    const focusHandler = (e) => {
+      // Only focus if click is NOT on a menu option
+      if (e.target.classList.contains('menu-opt')) return;
+      if (document.body.contains(input)) input.focus();
+    };
+    document.addEventListener('click', focusHandler);
+
+    input.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        const val = input.value;
+        input.remove();
+        document.removeEventListener('click', focusHandler);
+        wl(val);
+        wl('');
+
+        if (val.trim().length === 0) { resolve(); return; }
+
+        await tw(`PROCESSING: "${val.toUpperCase()}"`, 18, 'c'); w('\n');
+        wl('');
+        await fakeLoading('QUERYING COMMAND DATABASE', 1500);
+        await fakeLoading('AUTHENTICATING REQUEST', 1200);
+        wl('');
+
+        // Static noise effect
+        const staticEl = document.getElementById('staticNoise');
+        staticEl.style.opacity = '0.3';
+        snd.warn();
+        await sl(800);
+
+        await tw('■ ERROR: SECURE CONNECTION LOST', 22, 'rb'); w('\n');
+        await tw('SATELLITE UPLINK INTERRUPTED — POSSIBLE JAMMING DETECTED', 18, 'r'); w('\n');
+        await tw('LAST KNOWN SIGNAL: AEHF-6 // SIGNAL DEGRADED TO 12%', 18, 'a'); w('\n');
+        wl('');
+        staticEl.style.opacity = '0.1';
+        await sl(400);
+
+        const recovery = await makeSelect([
+          'CALL FOR HELICOPTER EXTRACTION',
+          'RADIO FOR BACKUP ON EMERGENCY FREQ',
+          'SWITCH TO BURST TRANSMISSION MODE',
+          'DEPLOY PORTABLE SATCOM TERMINAL',
+        ], 'EMERGENCY COMMS');
+
+        wl('');
+        staticEl.style.opacity = '0';
+
+        if (recovery === 0) {
+          await tw('HAILING PEDRO 6-6 ON GUARD FREQUENCY 243.0 MHz...', 18, 'c'); w('\n');
+          await fakeLoading('TRANSMITTING COORDINATES', 1200);
+          snd.ok();
+          wl(sp('  >> PEDRO 6-6 COPIES — HH-60W INBOUND','gb'));
+          wl(sp('  >> ETA 22 MINUTES — POP IR STROBE ON APPROACH','gb'));
+          wl(sp('  >> ESCORT: 2x AH-64E APACHE GUARDIAN','d'));
+        } else if (recovery === 1) {
+          await tw('BROADCASTING ON 121.5 MHz + 243.0 MHz...', 18, 'c'); w('\n');
+          await fakeLoading('MAYDAY BROADCAST', 1500);
+          snd.ok();
+          wl(sp('  >> OVERWATCH COPIES YOUR MAYDAY','gb'));
+          wl(sp('  >> QRF SCRAMBLED FROM FOB THUNDER — ETA 15 MIKES','gb'));
+          wl(sp('  >> AC-130J GHOSTRIDER PROVIDING OVERWATCH','d'));
+        } else if (recovery === 2) {
+          await tw('SWITCHING TO BURST MODE — 3-SECOND WINDOW...', 18, 'c'); w('\n');
+          await fakeLoading('COMPRESSING & ENCRYPTING', 800);
+          await sl(300);
+          wl(sp('  ████████████████████████████ BURST SENT','gb'));
+          snd.ok();
+          wl(sp('  >> BURST ACKNOWLEDGED BY ECHELON-VII','gb'));
+          wl(sp('  >> INTELLIGENCE PACKET RECEIVED — RETRANSMITTING','d'));
+        } else {
+          await tw('DEPLOYING AN/PRC-170 PORTABLE TERMINAL...', 18, 'c'); w('\n');
+          await fakeLoading('ALIGNING TO WGS-11', 1500);
+          await fakeLoading('ESTABLISHING LINK', 1000);
+          snd.ok();
+          wl(sp('  >> SATCOM LINK ESTABLISHED — BYPASS ACTIVE','gb'));
+          wl(sp('  >> BANDWIDTH: 2.4 Mbps // ENCRYPTION: TYPE-1','gb'));
+          wl(sp('  >> COMMS RESTORED — ALL CHANNELS NOMINAL','d'));
+        }
+
+        resolve();
+      } else {
+        snd.type();
+      }
+    });
+  });
+}
+
+// ═════════════════════════════════════════════════════════════
+//  END MENU — CLOSE / REBOOT / SELF-DESTRUCT
+// ═════════════════════════════════════════════════════════════
+
+async function endMenu() {
+  wl('');
+  hr('─','d');
+  wl('');
+  await tw('OPERATION COMPLETE — SELECT TERMINAL ACTION:', 18, 'a'); w('\n');
+
+  const action = await makeSelect([
+    'CLOSE TERMINAL (POWER OFF)',
+    'REBOOT SYSTEM',
+    'SELF-DESTRUCT (DOOMSDAY PROTOCOL)',
+  ], 'TERMINAL ACTION');
+
+  wl('');
+
+  if (action === 0) {
+    await closeTerminal();
+  } else if (action === 1) {
+    await rebootSystem();
+  } else if (action === 2) {
+    await selfDestruct();
+  }
+}
+
+async function closeTerminal() {
+  await tw('POWERING DOWN CAIS TERMINAL...', 20, 'a'); w('\n');
+  await fakeLoading('SECURING CLASSIFIED DATA', 1000);
+  await fakeLoading('WIPING SESSION MEMORY', 800);
+  wl('');
+  wl(sp('[SESSION TERMINATED — AUDIT LOG CREATED]','d'));
+  await sl(500);
+
+  // Fade to black, show power-on overlay
+  T.innerHTML = '';
+  await sl(300);
+  showPowerOn();
+}
+
+async function rebootSystem() {
+  await tw('INITIATING SYSTEM REBOOT...', 20, 'a'); w('\n');
+  await fakeLoading('FLUSHING CACHES', 600);
+  wl(sp('[REBOOTING...]','d'));
+  await sl(500);
+  T.innerHTML = '';
+  boot();
+}
+
+async function selfDestruct() {
+  const crt = document.getElementById('crt');
+  snd.alarm(); snd.alarm();
+  wl('');
+  wl(sp('  ╔══════════════════════════════════════════════════╗','rb'));
+  wl(sp('  ║     ■ ■ ■  DOOMSDAY PROTOCOL ACTIVATED  ■ ■ ■  ║','rb'));
+  wl(sp('  ╚══════════════════════════════════════════════════╝','rb'));
+  wl('');
+
+  await tw('AUTHORIZATION: OMEGA-BLACK-7-7-7', 22, 'r'); w('\n');
+  await tw('ALL TERMINAL DATA WILL BE DESTROYED', 20, 'a'); w('\n');
+  wl('');
+
+  // Countdown
+  const countEl = document.createElement('span');
+  T.appendChild(countEl);
+
+  for (let i = 10; i >= 1; i--) {
+    const countStr = `  ██ DETONATION IN: ${String(i).padStart(2,'0')} `;
+    const bar = '█'.repeat(i * 3) + '░'.repeat((10 - i) * 3);
+    countEl.innerHTML = sp(countStr,'rb') + sp(bar, i <= 3 ? 'rb' : 'ab');
+    scr();
+
+    if (i <= 3) {
+      snd.alarm();
+      crt.classList.add('shaking');
+    } else {
+      beep(300 + (10-i)*80, 0.15, 0.12);
+    }
+    await sl(800);
+  }
+
+  countEl.remove();
+  wl('');
+  wl('');
+
+  // EXPLOSION
+  crt.classList.remove('shaking');
+
+  // White flash + screen shake
+  const flash = document.createElement('div');
+  flash.className = 'explosion';
+  flash.style.background = '#fff';
+  flash.style.opacity = '1';
+  crt.appendChild(flash);
+
+  // Massive sound
+  beep(60, 2, 0.3, 'sine');
+  noise(2, 0.2);
+  beep(100, 1.5, 0.2, 'sawtooth');
+
+  await sl(150);
+  crt.classList.add('shaking');
+
+  // Flash sequence
+  const colors = ['#fff','#ff8800','#ff4400','#ffcc00','#fff','#ff4400','#ff2200','#880000','#440000','#220000','#000'];
+  for (const color of colors) {
+    flash.style.background = color;
+    await sl(120);
+  }
+
+  crt.classList.remove('shaking');
+  flash.style.background = '#000';
+  T.innerHTML = '';
+
+  await sl(600);
+
+  // Static noise
+  const staticEl = document.getElementById('staticNoise');
+  staticEl.style.opacity = '0.5';
+  noise(0.5, 0.1);
+  await sl(400);
+  staticEl.style.opacity = '0.2';
+  await sl(300);
+  staticEl.style.opacity = '0';
+  flash.remove();
+
+  await sl(500);
+
+  // Post-explosion text
+  wl('');
+  wl('');
+  wl('');
+  wl(sp('  ██████████████████████████████████████████████████████','r'));
+  wl('');
+  wl(sp('           ■ ■ ■  ALL DATA DESTROYED  ■ ■ ■','rb'));
+  wl('');
+  wl(sp('           TERMINAL COMPROMISED — NO RECOVERY','r'));
+  wl(sp('           DOOMSDAY PROTOCOL COMPLETE','r'));
+  wl('');
+  wl(sp('  ██████████████████████████████████████████████████████','r'));
+  wl('');
+  wl('');
+
+  await sl(1500);
+
+  // Slowly type the classified notice
+  await tw('FACILITY DECONTAMINATION IN PROGRESS...', 30, 'd'); w('\n');
+  await sl(800);
+  await tw('NSA/CSS FORENSIC TEAM NOTIFIED', 30, 'd'); w('\n');
+  await sl(600);
+  wl('');
+
+  w(sp('  [CLICK OR PRESS ANY KEY TO POWER ON]','d blink'));
+  await sl(300);
+
+  const restart = (e) => {
+    e.preventDefault();
+    document.removeEventListener('click', restart);
+    document.removeEventListener('keydown', restart);
+    T.innerHTML = '';
+    showPowerOn();
+  };
+  document.addEventListener('click', restart);
+  document.addEventListener('keydown', restart);
+}
+
+// ═════════════════════════════════════════════════════════════
+//  POWER ON OVERLAY
+// ═════════════════════════════════════════════════════════════
+
+function showPowerOn() {
+  started = false;
+  T.innerHTML = '';
+
+  const ov = document.createElement('div');
+  ov.id = 'ov';
+  ov.style.cssText = `
+    position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:1000;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;
+    font-family:'VT323',monospace;
+  `;
+  ov.innerHTML = `
+    <div style="color:#33ff33;font-size:13px;margin-bottom:20px;opacity:0.4;letter-spacing:2px;">DEPARTMENT OF WAR</div>
+    <div style="color:#33ff33;font-size:30px;animation:blink 1.2s step-end infinite;letter-spacing:3px;">▶ POWER ON</div>
+    <div style="color:#1a8c1a;font-size:14px;margin-top:18px;letter-spacing:1px;">CENTRAL ARMAMENT & INTELLIGENCE SYSTEM</div>
+    <div style="color:#0d440d;font-size:12px;margin-top:8px;">JSOC TIER-1 CLEARANCE REQUIRED</div>
+  `;
+  document.body.appendChild(ov);
+
+  const handler = () => {
+    if (started) return;
+    started = true;
+    ov.remove();
+    boot();
+  };
+  ov.addEventListener('click', handler);
+  document.addEventListener('keydown', handler, { once: true });
+}
+
+// ── Initial Start ──
+let started = false;
+showPowerOn();
+</script>
+</body>
+</html>
